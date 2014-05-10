@@ -1,0 +1,22 @@
+{
+  "name": "chatterbox",
+  "version": "0.0.1",
+  "main": "server/main.js",
+  "author": "Hack Reactor",
+  "license": "Copyright 2013, Hack Reactor. All rights reserved.",
+  "dependencies": {
+    "underscore": "^1.6.0",
+    "express": "3.x",
+    "request": "^2.34.0",
+    "mysql": "~2.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/julesmoretti/chatterbox-server.git"
+  },
+  "devDependencies": {
+    "request": "^2.34.0",
+    "chai": "^1.9.0",
+    "express": "3.x"
+  }
+}
