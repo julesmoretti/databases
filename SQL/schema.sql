@@ -1,4 +1,6 @@
--- CREATE DATABASE chat;
+drop database if exists chat; -- remove table
+
+CREATE DATABASE chat;
 
 USE chat;
 
@@ -32,11 +34,11 @@ CREATE TABLE messages (
 -- INSERT INTO users (username)
 -- values ('Jules'),('Emily');
 
-INSERT into users (username) values ('jules');
-INSERT into rooms (rooname) values ('lobby');
+-- INSERT into users (username) values ('jules');
+-- INSERT into rooms (rooname) values ('lobby');
 
-INSERT INTO messages (text, )
-values ('hello this is a test if the mssag',(Select UserId from users where username='jules'), (Select RoomId from rooms where rooomname='lobby'));
+-- INSERT INTO messages (text, )
+-- values ('hello this is a test if the mssag',(Select UserId from users where username='jules'), (Select RoomId from rooms where rooomname='lobby'));
 
 
 /* You can also create more tables, if you need them... */

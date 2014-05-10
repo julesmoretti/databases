@@ -29,13 +29,6 @@ dbConnection.connect(function(err) {
   console.log('connected as id ' + dbConnection.threadId);
 });
 
-// // fetch a username
-// dbConnection.query('SELECT * from users', function(err, rows, fields) {
-//   if (err) throw err;
-//   console.log('The username is: ', rows[1].username);
-// });
-
-// dbConnection.end();
 
 // These headers are extremely important as they allow us to
 // run this file locally and get around the same origin policy.
@@ -72,17 +65,20 @@ var sendData = function (res, data, statusCode) {
 // a more complex database where rooms aren't represented in the same
 // way as messages. It's clean for now though.
 var getFromCollection = function (getData, callback) {
-  callback(JSON.stringify({results: getData()}), 200); // won't work, client wants array messages/users or rooms
-  // extracting from the database - getting
+  getData(function(data) {
+    callback(JSON.stringify({results: data}), 200);
+  });
 };
 
 var postToCollection = function (postData, query, callback) {
   // We take the O(n) hit here, once per message,
   // rather than reversing the list on the client
   // every time we make a GET request.
-  postData(JSON.parse(query)); // won't work - want to replace with another way to put stuff in the database
+  postData(JSON.parse(query), function() {
+    callback("Messages Received.", 201);
+  }); // won't work - want to replace with another way to put stuff in the database
   // Dole out the right response code.
-  callback("Messages Received.", 201);
+  // callback("Messages Received.", 201);
 };
 
 // sets up listeners a specific collection on the collection url
@@ -123,10 +119,93 @@ app.configure(function () {
   app.use(express.static(path.join(__dirname, "../client")));
 });
 
+var getMessages = function(cb) {
+  dbConnection.query('SELECT messages.text, users.username FROM messages, users WHERE messages.userID = users.userID', function(err, rows) {
+    if (err) throw err;
+    // need to get username and roomnames
+    console.log(JSON.stringify(rows));
+    cb(rows);
+
+  });
+};
+
+var postMessage = function(message, cb) { // pass in message object
+  // check for userID, create user if null
+  dbConnection.query('SELECT userID FROM users WHERE username = ?', [message.username], function(err, rows) {
+    if(rows.length === 0) {
+      dbConnection.query('INSERT INTO users (username) values (?)', [message.username], function(err, rows) {
+        if (err) throw err;
+        dbConnection.query('SELECT userID FROM users WHERE username = (?)', [message.username], function(err, rows) {
+          if (err) throw err;
+          message.userID = rows[0];
+          dbConnection.query('SELECT roomID FROM rooms WHERE roomname = ?', [message.roomname], function(err, rows) {
+            if (err) throw err;
+            message.roomID = rows[0];
+            dbConnection.query('INSERT INTO messages (text, userID, roomID) values (?, ?, ?)', [message.text, message.userID, message.roomID], function(err, rows) {
+              if (err) throw err;
+              cb();
+              console.log("Message post success");
+            });
+          });
+        });
+      });
+    }
+    dbConnection.query('SELECT roomID FROM rooms WHERE roomname = ?', [message.roomname], function(err, rows) {
+      console.log(message.roomname);
+      message.roomID = rows[0];
+      if (err) throw err;
+
+      dbConnection.query('INSERT INTO messages (text, userID, roomID) values (?, ?, ?)', [message.text, message.userID, message.roomID], function(err, rows) {
+        if (err) throw err;
+        cb();
+        console.log("Message post success");
+      });
+    });
+  });
+};
+
+// {"username":"Emily","text":"helllo","roomname":"main"}
+
+
+
+var getRooms = function() {
+  dbConnection.query('SELECT roomname FROM rooms', function(err, rows, fields) {
+    if (err) throw err;
+    console.log(JSON.stringify(rows));
+    return JSON.stringify(rows);
+  });
+};
+
+var postRoom = function() {
+  dbConnection.query('INSERT INTO rooms (roomname) values (?)', [message.roomname], function(err, rows){
+    if (err) throw err;
+    console.log("Room added successfully");
+  });
+};
+
+var getUsers = function() {
+  dbConnection.query('SELECT username FROM users', function(err, rows, fields) {
+    if (err) throw err;
+    console.log(JSON.stringify(rows));
+    return JSON.stringify(rows);
+  });
+};
+
+var postUser = function() {
+  dbConnection.query('INSERT INTO users (username) values (?)', [message.username], function(err, rows){
+    if (err) throw err;
+    console.log("User added successfully");
+  });
+};
+
 setupCollection(app, "messages", getMessages, postMessage);
 setupCollection(app, "rooms", getRooms, postRoom);
 setupCollection(app, "users", getUsers, postUser);
 
-var getCollection = function () { // returns a function that queries the database, must use a callback (refactor use of getData and postData functions to use promises)
+// // fetch a username
+// dbConnection.query('SELECT * from users', function(err, rows, fields) {
+//   if (err) throw err;
+//   console.log('The username is: ', rows[1].username);
+// });
 
-};
+// dbConnection.end();
