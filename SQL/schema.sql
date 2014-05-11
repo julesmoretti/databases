@@ -31,14 +31,11 @@ CREATE TABLE messages (
   FOREIGN KEY (roomID) REFERENCES rooms(roomID)
 ) ENGINE=InnoDB;
 
--- INSERT INTO users (username)
--- values ('Jules'),('Emily');
+-- SELECT customer_info.firstname, customer_info.lastname, purchases.item
 
--- INSERT into users (username) values ('jules');
--- INSERT into rooms (rooname) values ('lobby');
+-- FROM customer_info INNER JOIN purchases
 
--- INSERT INTO messages (text, )
--- values ('hello this is a test if the mssag',(Select UserId from users where username='jules'), (Select RoomId from rooms where rooomname='lobby'));
+-- ON customer_info.customer_number = purchases.customer_number;
 
 
 /* You can also create more tables, if you need them... */

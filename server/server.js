@@ -130,69 +130,8 @@ var getMessages = function(cb) {
   });
 };
 
-
-
-
-// var postMessage = function(message, cb) { // pass in message object
-//   // check for userID, create user if null
-//   dbConnection.query('SELECT userID FROM users WHERE username = ?', [message.username], function(err, rows) {
-//     // if User table empty
-//     if(rows.length === 0) {
-//       // insert user into empty table
-//       dbConnection.query('INSERT INTO users (username) values (?)', [message.username], function(err, rows) {
-//         // should check for table... i
-//         if (err) throw err;
-//         // select userID from user table
-//         dbConnection.query('SELECT userID FROM users WHERE username = (?)', [message.username], function(err, rows) {
-//           if (err) throw err;
-//           message.userID = rows[0];
-//           // select roomID from rooms table
-//           dbConnection.query('SELECT roomID FROM rooms WHERE roomname = ?', [message.roomname], function(err, rows) {
-//             // if room error then we need to create a room.... and then fetch everything again...
-//             dbConnection.query('INSERT INTO rooms (roomname) values (?)', [message.roomname], function(err, rows) {
-//               if (err) throw err;
-//               dbConnection.query('SELECT roomID FROM rooms WHERE roomname = ?', [message.roomname], function(err, rows)  {
-//               });
-//             });
-//             if (err) throw err;
-//             // Insert messages tied to user and table
-//             message.roomID = rows[0];
-//             dbConnection.query('INSERT INTO messages (text, userID, roomID) values (?, ?, ?)', [message.text, message.userID, message.roomID], function(err, rows) {
-//               if (err) throw err;
-//               cb();
-//               console.log("Message post success");
-//             });
-//           });
-//         });
-//       });
-//     }
-//     dbConnection.query('SELECT roomID FROM rooms WHERE roomname = ?', [message.roomname], function(err, rows) {
-//       console.log(message.roomname);
-//       message.roomID = rows[0];
-//       if (err) throw err;
-
-//       dbConnection.query('INSERT INTO messages (text, userID, roomID) values (?, ?, ?)', [message.text, message.userID, message.roomID], function(err, rows) {
-//         if (err) throw err;
-//         cb();
-//         console.log("Message post success");
-//       });
-//     });
-//   });
-// };
-
-
-var postMessage = function(data, callback) {
-  //get user
-  makeGetter('SELECT username FROM users', makeGetter('SELECT roomname FROM rooms', callback))();
-  //get room
-
-  dbConnection.query('INSERT INTO messages (text) values (?)', [data.message], callback);
-};
-
-// {"username":"Emily","text":"helllo","roomname":"main"}
-
-var makeGetter = function(query, callback){
-  return function(){
+var makeGetter = function (query) {
+  return function (callback) {
     dbConnection.query(query, function(err, rows) {
       if (err) throw err;
       callback(rows);
@@ -200,40 +139,39 @@ var makeGetter = function(query, callback){
   };
 };
 
-// var getUsers = function (callback) {
-//   dbConnection.query('SELECT username FROM users', function(err, rows) {
-//     if (err) throw err;
-//     callback(rows);
-//   });
-// };
-
-// var getRooms = function (callback) {
-//   dbConnection.query('SELECT roomname FROM rooms', function(err, rows) {
-//     if (err) throw err;
-//     callback(rows);
-//   });
-// };
-
-var postRoom = function() {
-  dbConnection.query('INSERT INTO rooms (roomname) values (?)', [message.roomname], function(err, rows){
-    if (err) throw err;
-    console.log("Room added successfully");
+// Field ['username', 'roomname', 'text'], data{ username: 'jules', roomname: 'lobby'} -> ['jules', 'lobby', 'message_text']
+var fromFields = function (data, fields) {
+  return fields.map(function (field) {
+    return data[field];
   });
 };
 
-
-var postUser = function (data, callback) {
-  dbConnection.query('INSERT INTO users (username) values (?)', [data.username], callback);
+var makePoster = function(query, fields) {
+  return function (data, callback){
+    dbConnection.query(query, fromFields(data, fields), callback);
+  };
 };
+
+var getMessages = makeGetter("SELECT m.text AS text, u.username AS username, r.roomname AS roomname " +
+                             "FROM Messages m " +
+                             "INNER JOIN Users u " +
+                             "ON m.userID = u.userID " +
+                             "INNER JOIN Rooms r " +
+                             "ON m.roomID = r.roomID;");
+
+var postMessage = makePoster("INSERT INTO Messages (roomID, userID, text) " +
+                             "VALUES ((SELECT roomID FROM Rooms WHERE roomname = (?)), " +
+                             "(SELECT userID FROM Users WHERE username = (?)), (?))",
+                            ["roomname", "username", "text"]);
+
+var getUsers = makeGetter("SELECT username FROM users");
+
+var getRooms = makeGetter("SELECT roomname FROM rooms");
+
+var postRoom = makePoster("INSERT INTO rooms (roomname) values (?)", ["roomname"]);
+
+var postUser = makePoster("INSERT INTO users (username) values (?)", ["username"]);
 
 setupCollection(app, "messages", getMessages, postMessage);
 setupCollection(app, "rooms", getRooms, postRoom);
 setupCollection(app, "users", getUsers, postUser);
-
-// // fetch a username
-// dbConnection.query('SELECT * from users', function(err, rows, fields) {
-//   if (err) throw err;
-//   console.log('The username is: ', rows[1].username);
-// });
-
-// dbConnection.end();
