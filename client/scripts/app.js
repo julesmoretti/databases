@@ -42,6 +42,7 @@ var app = (function () {
 
   var currentRoom = new room.PublicRoom('main', function () { return true; });
   var currentUser = new user.User(getParameterByName('username'));
+  currentUser.send();
 
   var run = function () {
     $('#main').find('ul').remove();
